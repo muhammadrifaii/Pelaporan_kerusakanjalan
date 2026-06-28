@@ -142,6 +142,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setProfile(userData)
       } else {
         console.error('fetchUserProfile: profil TIDAK ditemukan di tabel profiles maupun users untuk userId:', userId)
+        // Fallback: buat profil dari metadata auth user
+        try {
+          const { data: { user: authUser } } = await supabase!.auth.getUser()
+          if (authUser?.email) {
+            const meta = authUser.user_metadata || {}
+            const newUser: User = {
+              id: userId,
+              email: authUser.email,
+              full_name: meta.full_name || authUser.email.split('@')[0],
+              phone: meta.phone || '',
+              role: 'citizen',
+              active: true,
+              address: '',
+              created_at: authUser.created_at || new Date().toISOString(),
+            }
+            const { error: createError } = await supabase!
+              .from('profiles')
+              .insert({ ...newUser })
+            if (createError) {
+              console.error('fetchUserProfile: gagal buat profil dari metadata:', createError.message)
+            } else {
+              setProfile(newUser)
+              console.log('fetchUserProfile: profil baru dibuat dari metadata auth untuk:', userId)
+            }
+          }
+        } catch (metaErr) {
+          console.error('fetchUserProfile: error fallback metadata:', metaErr)
+        }
       }
     } catch (error) {
       console.error('Error fetching user profile:', error)
@@ -171,7 +199,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (authError) throw authError
 
       if (authData.user) {
-        // Create user profile as citizen
         const { error: profileError } = await supabase.from('profiles').insert({
           id: authData.user.id,
           email,
@@ -181,7 +208,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           active: true,
         })
 
-        if (profileError) throw profileError
+        if (profileError) {
+          console.warn('signUp: gagal insert profile (akan dibuat otomatis saat login):', profileError.message)
+        }
+
+        await supabase.auth.signOut()
       }
 
       return { error: null }

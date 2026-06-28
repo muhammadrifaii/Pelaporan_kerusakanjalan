@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Mail, Lock, User, Phone, AlertCircle, CheckCircle } from 'lucide-react'
+import { Mail, Lock, User, Phone, AlertCircle } from 'lucide-react'
 
 export const RegisterPage = () => {
   const [email, setEmail] = useState('')
@@ -9,7 +9,6 @@ export const RegisterPage = () => {
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
@@ -17,7 +16,6 @@ export const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setSuccess(false)
     setLoading(true)
 
     // Validation
@@ -38,39 +36,13 @@ export const RegisterPage = () => {
       if (signUpError) {
         setError(signUpError.message)
       } else {
-        setSuccess(true)
-        setTimeout(() => {
-          navigate('/login')
-        }, 2000)
+        navigate('/register/success')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {
       setLoading(false)
     }
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-lg shadow-sm border border-border p-8 text-center">
-            <div className="mb-4 flex justify-center">
-              <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-8 h-8 text-success" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-semibold text-foreground mb-2">Pendaftaran Berhasil!</h2>
-            <p className="text-muted-foreground mb-6">
-              Akun Anda telah terdaftar. Silakan login untuk melanjutkan.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Anda akan diarahkan ke halaman login...
-            </p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Mail, Lock, AlertCircle } from 'lucide-react'
+import { Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react'
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('')
@@ -10,6 +10,8 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const justRegistered = searchParams.get('registered') === '1'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,6 +49,13 @@ export const LoginPage = () => {
             <div className="mb-6 p-4 bg-danger/10 border border-danger/20 rounded-lg flex gap-3">
               <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
               <p className="text-sm text-danger">{error}</p>
+            </div>
+          )}
+
+          {justRegistered && (
+            <div className="mb-6 p-4 bg-success/10 border border-success/20 rounded-lg flex gap-3">
+              <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-success">Akun berhasil dibuat! Silakan login dengan akun Anda.</p>
             </div>
           )}
 

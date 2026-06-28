@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { DashboardLayout } from './layouts/DashboardLayout'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { RegisterSuccess } from './pages/RegisterSuccess'
 import { LandingPage } from './pages/LandingPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { CreateReportPage } from './pages/CreateReportPage'
@@ -41,14 +42,8 @@ function App() {
                 </PublicRoute>
               }
             />
-            <Route
-              path="/register"
-              element={
-                <PublicRoute>
-                  <RegisterPage />
-                </PublicRoute>
-              }
-            />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/register/success" element={<RegisterSuccess />} />
 
             {/* Citizen Routes */}
             <Route
