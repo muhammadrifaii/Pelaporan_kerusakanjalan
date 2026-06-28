@@ -60,7 +60,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Subscribe to auth changes
     if (supabase) {
-      const unsubscribe = onAuthStateChange(async (_event, session) => {
+      const unsubscribe = onAuthStateChange(async (event, session) => {
+        if (event === 'INITIAL_SESSION') return
+
         if (session?.user) {
           setUser(session.user)
           setLoading(true)
@@ -84,22 +86,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!supabase) return
 
     const tryTable = async (table: string): Promise<User | null> => {
-      const { data, error } = await supabase!
-        .from(table)
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
-      if (!error && data) return data as User
-      return null
+      try {
+        const { data, error } = await supabase!
+          .from(table)
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle()
+        if (error) {
+          console.warn(`fetchUserProfile: ${table} query error:`, error.message)
+          return null
+        }
+        return data as User | null
+      } catch (e) {
+        console.warn(`fetchUserProfile: ${table} exception:`, e)
+        return null
+      }
     }
 
     try {
       let userData = await tryTable('profiles')
-      if (!userData) userData = await tryTable('users')
+      if (!userData) {
+        console.log('fetchUserProfile: profiles return null, coba users table...')
+        userData = await tryTable('users')
+        if (userData) {
+          console.log('fetchUserProfile: migrasi profil dari users ke profiles...')
+          const { error: insertError } = await supabase!
+            .from('profiles')
+            .insert({
+              id: userData.id,
+              email: userData.email,
+              full_name: userData.full_name,
+              phone: userData.phone,
+              role: userData.role,
+              address: userData.address || '',
+              active: userData.active ?? true,
+              avatar_url: userData.avatar_url || null,
+            })
+          if (insertError) {
+            console.error('fetchUserProfile: gagal migrasi ke profiles:', insertError.message)
+          } else {
+            const { data: newProfile } = await supabase!
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .maybeSingle()
+            if (newProfile) {
+              userData = newProfile as User
+              console.log('fetchUserProfile: migrasi berhasil, profil baru:', userData.id, userData.full_name, 'avatar_url:', userData.avatar_url?.substring(0, 50))
+            }
+          }
+        }
+      }
       if (userData) {
+        console.log('fetchUserProfile: profil ditemukan:', userData.id, userData.full_name, 'avatar_url:', userData.avatar_url?.substring(0, 50))
         setProfile(userData)
       } else {
-        console.warn('User profile not found in profiles or users table')
+        console.error('fetchUserProfile: profil TIDAK ditemukan di tabel profiles maupun users untuk userId:', userId)
       }
     } catch (error) {
       console.error('Error fetching user profile:', error)

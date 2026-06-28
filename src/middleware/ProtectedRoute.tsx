@@ -19,12 +19,12 @@ export const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps)
   if (profile) hadProfile.current = true
 
   useEffect(() => {
-    if (hadProfile.current) return
+    if (hadProfile.current || profile) return
     timerRef.current = setTimeout(() => setTimedOut(true), LOADING_TIMEOUT)
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [])
+  }, [profile])
 
   if (timedOut && !profile) {
     return <Navigate to="/login" replace />
@@ -62,10 +62,10 @@ export const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   if (profile) hadProfile.current = true
 
   useEffect(() => {
-    if (hadProfile.current) return
+    if (hadProfile.current || profile) return
     const timer = setTimeout(() => setTimedOut(true), LOADING_TIMEOUT)
     return () => clearTimeout(timer)
-  }, [])
+  }, [profile])
 
   if (timedOut && user && !profile) {
     return <Navigate to="/login" replace />
