@@ -24,9 +24,11 @@ CREATE TABLE public.profiles (
     role TEXT NOT NULL CHECK (role IN ('citizen', 'admin', 'coordinator', 'technician')),
     full_name TEXT NOT NULL,
     phone TEXT NOT NULL,
+    address TEXT DEFAULT '',
     avatar_url TEXT,
     active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Enable RLS on Profiles
@@ -73,10 +75,9 @@ CREATE TABLE public.reports (
     images_after TEXT[] DEFAULT '{}',
     video_url TEXT,
     status TEXT NOT NULL CHECK (status IN (
-        'Laporan Berhasil Dikirim', 'Menunggu Verifikasi Admin', 'Laporan Diterima', 
-        'Menunggu Penugasan Teknisi', 'Teknisi Ditugaskan', 'Survei Lapangan', 
-        'Sedang Dalam Perbaikan', 'Menunggu Verifikasi Akhir', 'Perbaikan Selesai', 
-        'Laporan Ditutup', 'Ditolak'
+        'Menunggu Verifikasi Admin', 'Diverifikasi',
+        'Menunggu Penugasan Teknisi', 'Sedang Diproses',
+        'Selesai', 'Ditolak'
     )),
     progress INTEGER NOT NULL DEFAULT 0 CHECK (progress BETWEEN 0 AND 100),
     priority TEXT CHECK (priority IN ('Rendah', 'Sedang', 'Tinggi')),
@@ -111,6 +112,16 @@ CREATE POLICY "Citizens can insert reports"
 CREATE POLICY "Citizens can update their own reports (e.g., rate/comment)" 
     ON public.reports FOR UPDATE USING (
         auth.uid() = citizen_id AND 
+        EXISTS (
+            SELECT 1 FROM public.profiles 
+            WHERE id = auth.uid() AND role = 'citizen'
+        )
+    );
+
+CREATE POLICY "Citizens can delete their own reports only before admin verification" 
+    ON public.reports FOR DELETE USING (
+        auth.uid() = citizen_id AND 
+        status = 'Laporan Berhasil Dikirim' AND
         EXISTS (
             SELECT 1 FROM public.profiles 
             WHERE id = auth.uid() AND role = 'citizen'
@@ -208,18 +219,17 @@ CREATE POLICY "Only admins can view audit logs"
 CREATE POLICY "Authenticated users can insert audit logs" 
     ON public.audit_logs FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- 8. Add Storage Bucket Creation Commands (Storage is usually configured via Supabase Dashboard, but here is the manual setup or SQL equivalents for reference)
--- Storage buckets required:
--- - avatars
--- - report-images
--- - report-videos
--- - technician-progress
+-- 8. Storage Setup — jalankan SQL ini di Supabase SQL Editor
+-- Storage buckets WAJIB dibuat sebelum upload bisa berfungsi:
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('report-images', 'report-images', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('report-videos', 'report-videos', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('technician-progress', 'technician-progress', true) ON CONFLICT (id) DO NOTHING;
 
--- To insert into Supabase storage configuration:
--- INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true);
--- INSERT INTO storage.buckets (id, name, public) VALUES ('report-images', 'report-images', true);
--- INSERT INTO storage.buckets (id, name, public) VALUES ('report-videos', 'report-videos', true);
--- INSERT INTO storage.buckets (id, name, public) VALUES ('technician-progress', 'technician-progress', true);
+-- Storage RLS policies (opsional, hanya jika bucket tidak public):
+-- CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('avatars','report-images','report-videos','technician-progress'));
+-- CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+-- CREATE POLICY "Own Delete" ON storage.objects FOR DELETE USING (auth.uid() = owner);
 
 -- Realtime Setup
 -- Add tables to the supabase_realtime publication

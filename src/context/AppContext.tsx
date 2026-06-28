@@ -33,7 +33,7 @@ interface AppContextType {
   createReport: (reportData: Omit<Report, 'id' | 'ticket_number' | 'status' | 'progress' | 'created_at' | 'updated_at'>) => Promise<Report>;
   verifyReport: (reportId: string, action: 'accept' | 'reject' | 'revise', params: { severity?: SeverityLevel; category?: DamageCategory; priority?: PriorityLevel; notes?: string; reason?: string }) => Promise<Report>;
   assignTechnician: (reportId: string, technicianId: string, priority?: PriorityLevel) => Promise<Report>;
-  updateReportStatusByTechnician: (reportId: string, status: 'Survei Lapangan' | 'Sedang Dalam Perbaikan' | 'Menunggu Verifikasi Akhir', params: { progress?: number; notes?: string; beforeImages?: string[]; progressImages?: string[]; afterImages?: string[] }) => Promise<Report>;
+  updateReportStatusByTechnician: (reportId: string, status: 'Sedang Diproses', params: { progress?: number; notes?: string; beforeImages?: string[]; progressImages?: string[]; afterImages?: string[] }) => Promise<Report>;
   approveCompletion: (reportId: string, approve: boolean, notes?: string) => Promise<Report>;
   submitFeedback: (reportId: string, rating: number, comment: string) => Promise<Report>;
   markNotificationRead: (notifId: string) => Promise<void>;
@@ -382,7 +382,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .insert({
           ...reportData,
           ticket_number,
-          status: 'Laporan Berhasil Dikirim',
+          status: 'Menunggu Verifikasi Admin',
           progress: 0
         })
         .select()
@@ -426,7 +426,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return report!;
     } else {
-      let status: ReportStatus = action === 'accept' ? 'Laporan Diterima' : 'Ditolak';
+      let status: ReportStatus = action === 'accept' ? 'Diverifikasi' : 'Ditolak';
       let updates: any = { status, updated_at: new Date().toISOString() };
       
       if (action === 'accept') {
@@ -484,7 +484,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return report!;
     } else {
       const updates: any = {
-        status: 'Teknisi Ditugaskan',
+        status: 'Sedang Diproses',
         technician_id: technicianId,
         coordinator_id: currentUser!.id,
         updated_at: new Date().toISOString()
@@ -508,7 +508,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       await supabase!.from('status_history').insert({
         report_id: reportId,
-        status: 'Teknisi Ditugaskan',
+        status: 'Sedang Diproses',
         notes: `Koordinator menugaskan Teknisi: ${techProfile?.full_name || 'Teknisi Lapangan'}.`,
         updated_by_name: currentUser!.full_name,
         updated_by_role: 'coordinator'
@@ -530,19 +530,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       let progress = 10;
       let updates: any = { status, updated_at: new Date().toISOString() };
 
-      if (status === 'Survei Lapangan') {
-        progress = 10;
-        if (params.beforeImages) updates.images_before = params.beforeImages;
-        updates.technician_notes = params.notes || 'Survei lapangan selesai.';
-      } else if (status === 'Sedang Dalam Perbaikan') {
-        progress = params.progress !== undefined ? params.progress : 25;
-        if (params.progressImages) updates.images_progress = params.progressImages;
-        updates.technician_notes = params.notes;
-      } else if (status === 'Menunggu Verifikasi Akhir') {
-        progress = 100;
-        if (params.afterImages) updates.images_after = params.afterImages;
-        updates.technician_notes = params.notes || 'Perbaikan rampung.';
-      }
+      progress = params.progress !== undefined ? params.progress : 10;
+      if (params.beforeImages) updates.images_before = params.beforeImages;
+      if (params.progressImages) updates.images_progress = params.progressImages;
+      if (params.afterImages) updates.images_after = params.afterImages;
+      updates.technician_notes = params.notes || 'Pengerjaan berlangsung.';
 
       updates.progress = progress;
 
@@ -575,7 +567,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast(approve ? 'Pekerjaan selesai disetujui!' : 'Instruksi pengerjaan ulang dikirim.', approve ? 'success' : 'warning');
       return report!;
     } else {
-      let status: ReportStatus = approve ? 'Perbaikan Selesai' : 'Sedang Dalam Perbaikan';
+      let status: ReportStatus = approve ? 'Selesai' : 'Sedang Diproses';
       let updates: any = { 
         status, 
         admin_notes: notes || (approve ? 'Hasil disetujui.' : 'Perlu perbaikan tambahan.'),
@@ -622,7 +614,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const { data, error } = await supabase!
         .from('reports')
         .update({
-          status: 'Laporan Ditutup',
+          status: 'Selesai',
           rating,
           citizen_comment: comment,
           updated_at: new Date().toISOString()

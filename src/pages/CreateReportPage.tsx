@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, MapPin, Upload, X, Camera, Loader2, Image as ImageIcon } from 'lucide-react'
+import { Plus, MapPin, Upload, X, Loader2, Image as ImageIcon, LocateFixed } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { supabase } from '../lib/supabase'
@@ -122,20 +122,28 @@ export const CreateReportPage = () => {
 
   const uploadPhotos = async (): Promise<string[]> => {
     if (!photos.length) return []
+    if (!supabase || !profile) return []
 
     const urls: string[] = []
+    let hasError = false
+
     for (const photo of photos) {
-      const fileName = `${profile?.id}-${Date.now()}-${Math.random().toString(36).substring(2)}.${photo.name.split('.').pop()}`
-      const { error: uploadError } = await supabase!.storage
+      const fileName = `${profile.id}-${Date.now()}-${Math.random().toString(36).substring(2)}.${photo.name.split('.').pop()}`
+      const { error: uploadError } = await supabase.storage
         .from('report-images')
-        .upload(fileName, photo)
+        .upload(fileName, photo, { upsert: true })
 
       if (uploadError) {
-        console.error('Upload error:', uploadError)
+        console.error('Upload error:', uploadError.message)
+        if (uploadError.message?.includes('Bucket') || uploadError.message?.includes('bucket')) {
+          showToast('error', 'Bucket penyimpanan "report-images" belum dibuat. Buat di Supabase Dashboard > Storage.', 'Upload Gagal')
+          return []
+        }
+        hasError = true
         continue
       }
 
-      const { data: publicData } = supabase!.storage
+      const { data: publicData } = supabase.storage
         .from('report-images')
         .getPublicUrl(fileName)
 
@@ -143,6 +151,13 @@ export const CreateReportPage = () => {
         urls.push(publicData.publicUrl)
       }
     }
+
+    if (hasError && urls.length === 0) {
+      showToast('error', 'Gagal mengupload foto. Periksa koneksi atau penyimpanan.', 'Upload Gagal')
+    } else if (hasError && urls.length > 0) {
+      showToast('warning', `Beberapa foto gagal diupload (${photos.length - urls.length}/${photos.length})`, 'Upload Sebagian')
+    }
+
     return urls
   }
 
@@ -188,7 +203,7 @@ export const CreateReportPage = () => {
           latitude: latitude || 0,
           longitude: longitude || 0,
           images_before: imageUrls,
-          status: 'Laporan Berhasil Dikirim',
+          status: 'Menunggu Verifikasi Admin',
           progress: 0,
         })
         .select()
@@ -227,7 +242,7 @@ export const CreateReportPage = () => {
 
       if (count !== null) {
         const { data: adminUsers } = await supabase
-          .from('users')
+          .from('profiles')
           .select('id')
           .eq('role', 'admin')
 
@@ -384,7 +399,7 @@ export const CreateReportPage = () => {
                   onClick={handleUseMyLocation}
                   className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
                 >
-                  <Camera className="w-4 h-4" />
+                  <LocateFixed className="w-4 h-4" />
                   Gunakan Lokasi Saya
                 </button>
               </div>

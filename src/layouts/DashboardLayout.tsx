@@ -88,7 +88,7 @@ const roleMenus: Record<UserRole, MenuItem[]> = {
   ],
   admin: [
     { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-    { label: 'Semua Laporan', href: '/admin/reports', icon: FileText },
+    { label: 'Manajemen Laporan', href: '/admin/reports', icon: FileText },
     { label: 'Pengguna', href: '/admin/users', icon: Users },
     { label: 'Profil Saya', href: '/profile', icon: User },
   ],
@@ -265,11 +265,15 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 className="px-4 py-4 border-b border-white/10"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
-                    style={{ background: theme.gradient }}
-                  >
-                    {profile?.full_name?.charAt(0) || '?'}
+                  <div className="w-9 h-9 rounded-full flex-shrink-0 overflow-hidden"
+                    style={{ background: theme.gradient }}>
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white font-semibold text-sm">
+                        {profile?.full_name?.charAt(0) || '?'}
+                      </div>
+                    )}
                   </div>
                   <div className="overflow-hidden">
                     <p className="text-white text-sm font-medium truncate">{profile?.full_name}</p>
@@ -549,11 +553,15 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </div>
 
                 <div className="hidden sm:flex items-center gap-3 ml-2 pl-2 border-l border-border">
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs"
-                    style={{ background: theme.gradient }}
-                  >
-                    {profile?.full_name?.charAt(0) || '?'}
+                  <div className="w-8 h-8 rounded-full overflow-hidden"
+                    style={{ background: theme.gradient }}>
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white font-semibold text-xs">
+                        {profile?.full_name?.charAt(0) || '?'}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right text-sm hidden md:block">
                     <p className="font-medium text-foreground">{profile?.full_name}</p>

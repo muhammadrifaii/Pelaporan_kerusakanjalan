@@ -30,11 +30,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const initAuth = async () => {
       try {
-        if (!supabase) return
+        if (!supabase) {
+          setLoading(false)
+          return
+        }
+
+        const timeoutId = setTimeout(() => {
+          setLoading(false)
+        }, 8000)
 
         const {
           data: { session },
         } = await supabase.auth.getSession()
+
+        clearTimeout(timeoutId)
 
         if (session?.user) {
           setUser(session.user)
@@ -55,11 +64,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user) {
           setUser(session.user)
           setLoading(true)
-          await fetchUserProfile(session.user.id)
-          setLoading(false)
+          try {
+            await fetchUserProfile(session.user.id)
+          } finally {
+            setLoading(false)
+          }
         } else {
           setUser(null)
           setProfile(null)
+          setLoading(false)
         }
       })
 
@@ -70,15 +83,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchUserProfile = async (userId: string) => {
     if (!supabase) return
 
-    try {
-      const { data, error } = await supabase
-        .from('users')
+    const tryTable = async (table: string): Promise<User | null> => {
+      const { data, error } = await supabase!
+        .from(table)
         .select('*')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
+      if (!error && data) return data as User
+      return null
+    }
 
-      if (error) throw error
-      setProfile(data as User)
+    try {
+      let userData = await tryTable('profiles')
+      if (!userData) userData = await tryTable('users')
+      if (userData) {
+        setProfile(userData)
+      } else {
+        console.warn('User profile not found in profiles or users table')
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error)
     }
@@ -108,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (authData.user) {
         // Create user profile as citizen
-        const { error: profileError } = await supabase.from('users').insert({
+        const { error: profileError } = await supabase.from('profiles').insert({
           id: authData.user.id,
           email,
           role: 'citizen' as UserRole,
@@ -159,12 +181,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!supabase || !user) return { error: new Error('Not authenticated') }
 
     try {
+      const updateData: Record<string, unknown> = {}
+      if (data.full_name !== undefined) updateData.full_name = data.full_name
+      if (data.phone !== undefined) updateData.phone = data.phone
+      if (data.avatar_url !== undefined) updateData.avatar_url = data.avatar_url
+      if (data.address !== undefined) updateData.address = data.address
+
       const { error } = await supabase
-        .from('users')
-        .update(data)
+        .from('profiles')
+        .update(updateData)
         .eq('id', user.id)
 
-      if (error) throw error
+      if (error) {
+        if (data.address !== undefined && error.message?.includes('address')) {
+          delete updateData.address
+          const { error: retryError } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', user.id)
+          if (retryError) throw retryError
+        } else {
+          throw error
+        }
+      }
 
       setProfile((prev) => (prev ? { ...prev, ...data } : null))
       return { error: null }

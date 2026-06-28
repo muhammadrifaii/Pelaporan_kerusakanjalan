@@ -139,7 +139,7 @@ const INITIAL_REPORTS: Report[] = [
     images_before: ['https://images.unsplash.com/photo-1515162305285-0293e4767cc2?w=600'],
     images_progress: ['https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?w=600'],
     images_after: ['https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=600'],
-    status: 'Laporan Ditutup',
+    status: 'Selesai',
     progress: 100,
     priority: 'Tinggi',
     admin_notes: 'Laporan valid, tingkat kerusakan berat di jalan arteri kota. Prioritas tinggi.',
@@ -172,7 +172,7 @@ const INITIAL_REPORTS: Report[] = [
     images_before: ['https://images.unsplash.com/photo-1599740831114-1740a1863ffd?w=600'],
     images_progress: ['https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600'],
     images_after: [],
-    status: 'Sedang Dalam Perbaikan',
+    status: 'Sedang Diproses',
     progress: 50,
     priority: 'Sedang',
     admin_notes: 'Laporan diverifikasi, lokasi dekat persimpangan padat. Diteruskan ke Koordinator Lapangan.',
@@ -227,7 +227,7 @@ const INITIAL_REPORTS: Report[] = [
     images_before: ['https://images.unsplash.com/photo-1515162305285-0293e4767cc2?w=600'],
     images_progress: [],
     images_after: [],
-    status: 'Laporan Berhasil Dikirim',
+    status: 'Menunggu Verifikasi Admin',
     progress: 0,
     created_at: new Date('2026-06-15T22:30:00Z').toISOString(),
     updated_at: new Date('2026-06-15T22:30:00Z').toISOString()
@@ -239,7 +239,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-001',
     report_id: 'rep-001',
-    status: 'Laporan Berhasil Dikirim',
+    status: 'Menunggu Verifikasi Admin',
     notes: 'Laporan berhasil disubmit oleh masyarakat.',
     updated_by_name: 'Rudi Hermawan',
     updated_by_role: 'citizen',
@@ -257,7 +257,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-003',
     report_id: 'rep-001',
-    status: 'Laporan Diterima',
+    status: 'Diverifikasi',
     notes: 'Diverifikasi oleh admin, tingkat kerusakan Berat, prioritas Tinggi.',
     updated_by_name: 'Deni Hermawan, S.T.',
     updated_by_role: 'admin',
@@ -275,7 +275,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-005',
     report_id: 'rep-001',
-    status: 'Teknisi Ditugaskan',
+    status: 'Sedang Diproses',
     notes: 'Koordinator menugaskan Teknisi Edi Wibowo untuk melakukan survei dan perbaikan.',
     updated_by_name: 'Budi Santoso',
     updated_by_role: 'coordinator',
@@ -284,7 +284,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-006',
     report_id: 'rep-001',
-    status: 'Survei Lapangan',
+    status: 'Sedang Diproses',
     notes: 'Teknisi tiba di lokasi, mengonfirmasi tingkat kerusakan dan mengunggah foto awal.',
     updated_by_name: 'Edi Wibowo',
     updated_by_role: 'technician',
@@ -293,7 +293,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-007',
     report_id: 'rep-001',
-    status: 'Sedang Dalam Perbaikan',
+    status: 'Sedang Diproses',
     notes: 'Pekerjaan perbaikan jalan dimulai dengan pembersihan area lubang.',
     updated_by_name: 'Edi Wibowo',
     updated_by_role: 'technician',
@@ -302,7 +302,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-008',
     report_id: 'rep-001',
-    status: 'Menunggu Verifikasi Akhir',
+    status: 'Sedang Diproses',
     notes: 'Perbaikan rampung 100%, teknisi mengunggah foto pengerjaan dan foto selesai.',
     updated_by_name: 'Edi Wibowo',
     updated_by_role: 'technician',
@@ -311,7 +311,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-009',
     report_id: 'rep-001',
-    status: 'Perbaikan Selesai',
+    status: 'Selesai',
     notes: 'Pekerjaan diperiksa dan disetujui oleh Administrator Dinas PUPR.',
     updated_by_name: 'Deni Hermawan, S.T.',
     updated_by_role: 'admin',
@@ -320,7 +320,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-010',
     report_id: 'rep-001',
-    status: 'Laporan Ditutup',
+    status: 'Selesai',
     notes: 'Pelapor memberikan rating 5 bintang dan komentar kepuasan.',
     updated_by_name: 'Rudi Hermawan',
     updated_by_role: 'citizen',
@@ -331,7 +331,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-011',
     report_id: 'rep-002',
-    status: 'Laporan Berhasil Dikirim',
+    status: 'Menunggu Verifikasi Admin',
     notes: 'Laporan dikirim warga.',
     updated_by_name: 'Rudi Hermawan',
     updated_by_role: 'citizen',
@@ -349,7 +349,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-013',
     report_id: 'rep-002',
-    status: 'Laporan Diterima',
+    status: 'Diverifikasi',
     notes: 'Verifikasi sukses, kerusakan Sedang, prioritas Sedang.',
     updated_by_name: 'Deni Hermawan, S.T.',
     updated_by_role: 'admin',
@@ -367,7 +367,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-015',
     report_id: 'rep-002',
-    status: 'Teknisi Ditugaskan',
+    status: 'Sedang Diproses',
     notes: 'Koordinator menugaskan Teknisi Edi Wibowo.',
     updated_by_name: 'Budi Santoso',
     updated_by_role: 'coordinator',
@@ -376,7 +376,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-016',
     report_id: 'rep-002',
-    status: 'Survei Lapangan',
+    status: 'Sedang Diproses',
     notes: 'Teknisi tiba di lokasi dan mengunggah foto sebelum perbaikan.',
     updated_by_name: 'Edi Wibowo',
     updated_by_role: 'technician',
@@ -385,7 +385,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-017',
     report_id: 'rep-002',
-    status: 'Sedang Dalam Perbaikan',
+    status: 'Sedang Diproses',
     notes: 'Pengerjaan dimulai. Progress 50%.',
     updated_by_name: 'Edi Wibowo',
     updated_by_role: 'technician',
@@ -396,7 +396,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-018',
     report_id: 'rep-003',
-    status: 'Laporan Berhasil Dikirim',
+    status: 'Menunggu Verifikasi Admin',
     notes: 'Laporan disubmit oleh warga.',
     updated_by_name: 'Rudi Hermawan',
     updated_by_role: 'citizen',
@@ -416,7 +416,7 @@ const INITIAL_STATUS_HISTORY: StatusHistory[] = [
   {
     id: 'h-020',
     report_id: 'rep-004',
-    status: 'Laporan Berhasil Dikirim',
+    status: 'Menunggu Verifikasi Admin',
     notes: 'Laporan disubmit oleh warga.',
     updated_by_name: 'Rudi Hermawan',
     updated_by_role: 'citizen',
@@ -749,7 +749,7 @@ class SupabaseSimulator {
       ...reportData,
       id: `rep-${Math.random().toString(36).substr(2, 9)}`,
       ticket_number,
-      status: 'Laporan Berhasil Dikirim',
+      status: 'Menunggu Verifikasi Admin',
       progress: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -762,7 +762,7 @@ class SupabaseSimulator {
     this.saveData();
 
     // 1. Add Status History
-    this.addStatusHistory(newReport.id, 'Laporan Berhasil Dikirim', 'Laporan berhasil disubmit oleh masyarakat.', reportData.citizen_name, 'citizen');
+    this.addStatusHistory(newReport.id, 'Menunggu Verifikasi Admin', 'Laporan berhasil disubmit oleh masyarakat.', reportData.citizen_name, 'citizen');
 
     // 2. Add Auto Status History to Waiting Verification
     const updatedReport = {
@@ -820,7 +820,7 @@ class SupabaseSimulator {
     let historyNotes: string;
 
     if (action === 'accept') {
-      newStatus = 'Laporan Diterima';
+      newStatus = 'Diverifikasi';
       report.severity = params.severity || report.severity;
       report.category = params.category || report.category;
       report.priority = params.priority || 'Sedang';
@@ -899,7 +899,7 @@ class SupabaseSimulator {
     if (!technician) return { report: null, error: new Error('Teknisi tidak valid.') };
 
     const report = this.reports[index];
-    report.status = 'Teknisi Ditugaskan';
+    report.status = 'Sedang Diproses';
     report.technician_id = technicianId;
     report.coordinator_id = this.activeSession.id;
     if (priority) report.priority = priority;
@@ -910,7 +910,7 @@ class SupabaseSimulator {
     // Status History
     this.addStatusHistory(
       report.id, 
-      'Teknisi Ditugaskan', 
+      'Sedang Diproses', 
       `Koordinator menugaskan Teknisi: ${technician.full_name}.`, 
       this.activeSession.full_name, 
       'coordinator'
@@ -950,7 +950,7 @@ class SupabaseSimulator {
   // Technician Actions
   public updateReportStatusByTechnician(
     reportId: string, 
-    newStatus: 'Survei Lapangan' | 'Sedang Dalam Perbaikan' | 'Menunggu Verifikasi Akhir', 
+    newStatus: 'Sedang Diproses', 
     params: { progress?: number; notes?: string; beforeImages?: string[]; progressImages?: string[]; afterImages?: string[] }
   ): { report: Report | null; error: Error | null } {
     if (!this.activeSession || this.activeSession.role !== 'technician') {
@@ -967,26 +967,19 @@ class SupabaseSimulator {
 
     report.status = newStatus;
     report.updated_at = new Date().toISOString();
+    report.progress = params.progress !== undefined ? params.progress : report.progress;
 
-    if (newStatus === 'Survei Lapangan') {
-      report.progress = 10; // Survey phase
-      if (params.beforeImages && params.beforeImages.length > 0) {
-        report.images_before = [...report.images_before, ...params.beforeImages];
-      }
-      report.technician_notes = params.notes || 'Survei lapangan selesai, mempersiapkan alat perbaikan.';
-    } else if (newStatus === 'Sedang Dalam Perbaikan') {
-      report.progress = params.progress !== undefined ? params.progress : 25;
-      if (params.progressImages && params.progressImages.length > 0) {
-        report.images_progress = [...report.images_progress, ...params.progressImages];
-      }
-      report.technician_notes = params.notes || report.technician_notes;
-    } else if (newStatus === 'Menunggu Verifikasi Akhir') {
-      report.progress = 100;
-      if (params.afterImages && params.afterImages.length > 0) {
-        report.images_after = [...report.images_after, ...params.afterImages];
-      }
-      report.technician_notes = params.notes || 'Seluruh pekerjaan fisik selesai, memohon verifikasi akhir admin.';
+    if (params.beforeImages && params.beforeImages.length > 0) {
+      report.images_before = [...report.images_before, ...params.beforeImages];
     }
+    if (params.progressImages && params.progressImages.length > 0) {
+      report.images_progress = [...report.images_progress, ...params.progressImages];
+    }
+    if (params.afterImages && params.afterImages.length > 0) {
+      report.images_after = [...report.images_after, ...params.afterImages];
+    }
+
+    report.technician_notes = params.notes || report.technician_notes || 'Pengerjaan berlangsung.';
 
     this.saveData();
 
@@ -1009,27 +1002,8 @@ class SupabaseSimulator {
     );
 
     // Notify Citizen
-    let notifTitle = 'Update Perbaikan Jalan';
-    let notifMsg = `Laporan Anda ${report.ticket_number} sedang diproses.`;
-    if (newStatus === 'Survei Lapangan') {
-      notifTitle = 'Survei Lokasi Kerusakan';
-      notifMsg = `Teknisi telah tiba di lokasi ${report.street_name} untuk melakukan survei awal.`;
-    } else if (newStatus === 'Sedang Dalam Perbaikan') {
-      notifTitle = 'Perbaikan Jalan Dimulai';
-      notifMsg = `Tim teknisi sedang melakukan perbaikan di lokasi. Progress saat ini: ${report.progress}%.`;
-    } else if (newStatus === 'Menunggu Verifikasi Akhir') {
-      notifTitle = 'Pekerjaan Selesai & Menunggu Verifikasi';
-      notifMsg = `Perbaikan untuk tiket ${report.ticket_number} selesai 100%. Menunggu verifikasi akhir dari admin Dinas PUPR.`;
-
-      // Also notify Admin
-      this.createNotification(
-        'u-admin',
-        'Menunggu Verifikasi Akhir',
-        `Teknisi ${this.activeSession.full_name} menyelesaikan tiket ${report.ticket_number}. Butuh verifikasi akhir Anda.`,
-        report.id,
-        report.ticket_number
-      );
-    }
+    const notifTitle = 'Update Perbaikan Jalan';
+    const notifMsg = `Laporan Anda ${report.ticket_number} sedang diproses. Progress: ${report.progress}%.`;
 
     this.createNotification(report.citizen_id, notifTitle, notifMsg, report.id, report.ticket_number);
     this.notifyListeners('reports', 'UPDATE', report);
@@ -1049,7 +1023,7 @@ class SupabaseSimulator {
     const report = this.reports[index];
     
     if (approve) {
-      report.status = 'Perbaikan Selesai';
+      report.status = 'Selesai';
       report.completed_at = new Date().toISOString();
       report.admin_notes = notes || 'Hasil pengerjaan dinilai baik dan disetujui.';
       this.saveData();
@@ -1057,7 +1031,7 @@ class SupabaseSimulator {
       // Status History
       this.addStatusHistory(
         report.id, 
-        'Perbaikan Selesai', 
+        'Selesai', 
         `Pekerjaan disetujui admin: ${report.admin_notes}.`, 
         this.activeSession.full_name, 
         'admin'
@@ -1082,7 +1056,7 @@ class SupabaseSimulator {
       );
     } else {
       // Revert status to repair in progress with instructions
-      report.status = 'Sedang Dalam Perbaikan';
+      report.status = 'Sedang Diproses';
       report.progress = 75;
       report.admin_notes = notes || 'Hasil pengerjaan kurang rapi, butuh perbaikan tambahan.';
       this.saveData();
@@ -1090,7 +1064,7 @@ class SupabaseSimulator {
       // Status History
       this.addStatusHistory(
         report.id, 
-        'Sedang Dalam Perbaikan', 
+        'Sedang Diproses', 
         `Admin meminta pengerjaan ulang: ${report.admin_notes}. Progress diturunkan ke 75%.`, 
         this.activeSession.full_name, 
         'admin'
@@ -1126,7 +1100,7 @@ class SupabaseSimulator {
       return { report: null, error: new Error('Ulasan hanya bisa diisi oleh warga pembuat laporan asli.') };
     }
 
-    report.status = 'Laporan Ditutup';
+    report.status = 'Selesai';
     report.rating = rating;
     report.citizen_comment = comment;
     report.updated_at = new Date().toISOString();
@@ -1135,7 +1109,7 @@ class SupabaseSimulator {
     // Status History
     this.addStatusHistory(
       report.id, 
-      'Laporan Ditutup', 
+      'Selesai', 
       `Masyarakat menutup laporan dengan ulasan bintang ${rating}. Ulasan: "${comment}"`, 
       this.activeSession.full_name, 
       'citizen'

@@ -75,32 +75,20 @@ const getGeocodingAddress = (lat: number, lng: number) => {
 const getMarkerIcon = (status: ReportStatus) => {
   let color = '#3B82F6'; // Default Blue
   switch (status) {
-    case 'Laporan Berhasil Dikirim':
     case 'Menunggu Verifikasi Admin':
       // Baru (Biru)
       color = '#0F4C81';
       break;
-    case 'Laporan Diterima':
+    case 'Diverifikasi':
     case 'Menunggu Penugasan Teknisi':
       // Diverifikasi (Kuning/Sky)
       color = '#1D9BF0';
       break;
-    case 'Teknisi Ditugaskan':
-      // Teknisi Ditugaskan (Oranye)
-      color = '#F59E0B';
-      break;
-    case 'Survei Lapangan':
-      color = '#6366F1'; // Indigo
-      break;
-    case 'Sedang Dalam Perbaikan':
-      // Sedang Diperbaiki (Ungu)
+    case 'Sedang Diproses':
+      // Sedang Diproses (Ungu)
       color = '#A855F7';
       break;
-    case 'Menunggu Verifikasi Akhir':
-      color = '#EAB308'; // Amber
-      break;
-    case 'Perbaikan Selesai':
-    case 'Laporan Ditutup':
+    case 'Selesai':
       // Selesai (Hijau)
       color = '#22C55E';
       break;
@@ -115,7 +103,7 @@ const getMarkerIcon = (status: ReportStatus) => {
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="${color}" stroke="#ffffff" stroke-width="1.5"/>
         </svg>
-        ${status === 'Sedang Dalam Perbaikan' ? `
+        ${status === 'Sedang Diproses' ? `
           <div class="absolute -inset-2 rounded-full border-2 animate-ping" style="border-color: ${color}; opacity: 0.6; pointer-events: none;"></div>
         ` : ''}
       </div>

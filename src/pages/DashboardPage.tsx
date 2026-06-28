@@ -126,20 +126,20 @@ export const DashboardPage = () => {
       if (error) throw error
 
       const reportsList = (data as Report[]) || []
-      setReports(reportsList.slice(0, 5))
+      setReports(profile?.role === 'admin' ? reportsList : reportsList.slice(0, 5))
 
       const s: StatData = {
         total: reportsList.length,
         processing: reportsList.filter(r =>
-          r.status === 'Menunggu Verifikasi Admin' || r.status === 'Laporan Diterima' || r.status === 'Sedang Dalam Perbaikan'
+          r.status === 'Menunggu Verifikasi Admin' || r.status === 'Diverifikasi' || r.status === 'Sedang Diproses'
         ).length,
-        completed: reportsList.filter(r => r.status === 'Perbaikan Selesai' || r.status === 'Laporan Ditutup').length,
+        completed: reportsList.filter(r => r.status === 'Selesai').length,
         rejected: reportsList.filter(r => r.status === 'Ditolak').length,
-        accepted: reportsList.filter(r => r.status === 'Laporan Diterima' || r.status === 'Menunggu Penugasan Teknisi').length,
-        assigned: reportsList.filter(r => r.status === 'Teknisi Ditugaskan').length,
-        surveying: reportsList.filter(r => r.status === 'Survei Lapangan').length,
-        repairing: reportsList.filter(r => r.status === 'Sedang Dalam Perbaikan').length,
-        pendingVerification: reportsList.filter(r => r.status === 'Menunggu Verifikasi Akhir').length,
+        accepted: reportsList.filter(r => r.status === 'Diverifikasi' || r.status === 'Menunggu Penugasan Teknisi').length,
+        assigned: reportsList.filter(r => r.status === 'Menunggu Penugasan Teknisi').length,
+        surveying: reportsList.filter(r => r.status === 'Sedang Diproses').length,
+        repairing: reportsList.filter(r => r.status === 'Sedang Diproses').length,
+        pendingVerification: reportsList.filter(r => r.status === 'Sedang Diproses').length,
       }
       setStats(s)
     } catch (err) {
@@ -154,7 +154,7 @@ export const DashboardPage = () => {
     if (!sb) return
     try {
       const { count } = await sb
-        .from('users')
+        .from('profiles')
         .select('*', { count: 'exact', head: true })
       if (count !== null) setTotalUsers(count)
     } catch { /* silent */ }
@@ -185,14 +185,10 @@ export const DashboardPage = () => {
     const colors: Record<string, string> = {
       'Laporan Berhasil Dikirim': '#3B82F6',
       'Menunggu Verifikasi Admin': '#F59E0B',
-      'Laporan Diterima': '#10B981',
+      'Diverifikasi': '#10B981',
       'Menunggu Penugasan Teknisi': '#8B5CF6',
-      'Teknisi Ditugaskan': '#F97316',
-      'Survei Lapangan': '#6366F1',
-      'Sedang Dalam Perbaikan': '#A855F7',
-      'Menunggu Verifikasi Akhir': '#F59E0B',
-      'Perbaikan Selesai': '#10B981',
-      'Laporan Ditutup': '#64748B',
+      'Sedang Diproses': '#F97316',
+      'Selesai': '#10B981',
       'Ditolak': '#EF4444',
     }
     return (
@@ -329,12 +325,12 @@ export const DashboardPage = () => {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {reports.map((report, i) => (
+              {reports.map((report, _i) => (
                 <motion.div
                   key={report.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: _i * 0.05 }}
                   className="p-4 hover:bg-muted/50 transition-colors cursor-pointer"
                   onClick={() => navigate('/reports')}
                 >
@@ -400,6 +396,94 @@ export const DashboardPage = () => {
           </motion.div>
         )}
 
+        {/* Admin Verification Queue */}
+        {reports.filter(r => r.status === 'Menunggu Verifikasi Admin').length > 0 && (
+          <motion.div initial="hidden" animate="visible" variants={fadeInUp} custom={2.5}
+            className="rounded-2xl border border-border bg-card overflow-hidden"
+          >
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-foreground">Antrean Verifikasi</h2>
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium text-white bg-yellow-500">
+                  {reports.filter(r => r.status === 'Menunggu Verifikasi Admin').length}
+                </span>
+              </div>
+            </div>
+            <div className="divide-y divide-border">
+              {reports.filter(r => r.status === 'Menunggu Verifikasi Admin').slice(0, 5).map((report) => (
+                <div key={report.id} className="p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono text-primary font-semibold">{report.ticket_number}</span>
+                      </div>
+                      <p className="font-medium text-foreground text-sm truncate">{report.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {report.citizen_name} &middot; {report.district} &middot; {report.street_name}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={async () => {
+                          if (!supabase || !profile) return
+                          try {
+                            await supabase.from('reports').update({
+                              status: 'Diverifikasi',
+                              updated_at: new Date().toISOString(),
+                            }).eq('id', report.id)
+                            await supabase.from('status_history').insert({
+                              report_id: report.id,
+                              status: 'Diverifikasi',
+                              notes: `Laporan diverifikasi oleh admin ${profile.full_name}`,
+                              updated_by_name: profile.full_name,
+                              updated_by_role: 'admin',
+                            })
+                            showToast('success', `Laporan ${report.ticket_number} diverifikasi`, 'Berhasil')
+                            fetchData()
+                          } catch (err) {
+                            showToast('error', 'Gagal memverifikasi laporan', 'Kesalahan')
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-success text-white rounded-lg text-xs font-medium hover:bg-success/90 transition-colors flex items-center gap-1"
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        Verifikasi
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!supabase || !profile) return
+                          try {
+                            await supabase.from('reports').update({
+                              status: 'Ditolak',
+                              rejection_reason: 'Laporan ditolak oleh admin',
+                              updated_at: new Date().toISOString(),
+                            }).eq('id', report.id)
+                            await supabase.from('status_history').insert({
+                              report_id: report.id,
+                              status: 'Ditolak',
+                              notes: `Laporan ditolak oleh admin ${profile.full_name}`,
+                              updated_by_name: profile.full_name,
+                              updated_by_role: 'admin',
+                            })
+                            showToast('success', `Laporan ${report.ticket_number} ditolak`, 'Berhasil')
+                            fetchData()
+                          } catch (err) {
+                            showToast('error', 'Gagal menolak laporan', 'Kesalahan')
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-danger text-white rounded-lg text-xs font-medium hover:bg-danger/90 transition-colors flex items-center gap-1"
+                      >
+                        <Ban className="w-3 h-3" />
+                        Tolak
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* Charts */}
         {stats.total > 0 && (
           <StatCharts
@@ -410,11 +494,18 @@ export const DashboardPage = () => {
           />
         )}
 
+        {/* Recent Reports */}
         <motion.div initial="hidden" animate="visible" variants={fadeInUp} custom={3}
           className="rounded-2xl border border-border bg-card overflow-hidden"
         >
-          <div className="p-5 border-b border-border">
+          <div className="p-5 border-b border-border flex items-center justify-between">
             <h2 className="font-semibold text-foreground">Laporan Terbaru</h2>
+            <button
+              onClick={() => navigate('/admin/reports')}
+              className="text-sm font-medium flex items-center gap-1 text-primary hover:underline"
+            >
+              Kelola Laporan <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
           {reports.length === 0 ? (
             <div className="p-10 text-center">
@@ -426,31 +517,23 @@ export const DashboardPage = () => {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {reports.map((report, i) => (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="p-4 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-mono text-primary font-semibold">{report.ticket_number}</span>
-                        <span className="text-xs text-muted-foreground">&bull;</span>
-                        <span className="text-xs text-muted-foreground">{report.citizen_name}</span>
+              {reports.slice(0, 5).map((report) => (
+                <div key={report.id} className="p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {report.images_before?.[0] && (
+                        <img src={report.images_before[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground text-sm truncate">{report.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{report.ticket_number} &middot; {report.citizen_name}</p>
                       </div>
-                      <p className="font-medium text-foreground text-sm truncate">{report.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {report.district} &middot; {report.street_name}
-                      </p>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {statusBadge(report.status)}
                     </div>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}
@@ -463,7 +546,7 @@ export const DashboardPage = () => {
   if (role === 'coordinator') {
     const pendingAssignment = reports.filter(r => r.status === 'Menunggu Penugasan Teknisi')
     const activeReports = reports.filter(r =>
-      ['Teknisi Ditugaskan', 'Survei Lapangan', 'Sedang Dalam Perbaikan', 'Menunggu Verifikasi Akhir'].includes(r.status)
+      ['Sedang Diproses'].includes(r.status)
     )
 
     return (
@@ -570,8 +653,8 @@ export const DashboardPage = () => {
   // ========== TECHNICIAN DASHBOARD ==========
   if (role === 'technician') {
     const myTasks = reports.filter(r => r.technician_id === profile?.id)
-    const activeTasks = myTasks.filter(r => r.status !== 'Perbaikan Selesai' && r.status !== 'Laporan Ditutup' && r.status !== 'Ditolak')
-    const completedTasks = myTasks.filter(r => r.status === 'Perbaikan Selesai' || r.status === 'Laporan Ditutup')
+    const activeTasks = myTasks.filter(r => r.status !== 'Selesai' && r.status !== 'Ditolak')
+    const completedTasks = myTasks.filter(r => r.status === 'Selesai')
 
     return (
       <div className="space-y-6">
@@ -603,12 +686,12 @@ export const DashboardPage = () => {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {activeTasks.map((report, i) => (
+              {activeTasks.map((report, _i) => (
                 <motion.div
                   key={report.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: _i * 0.05 }}
                   className="p-4 hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3">

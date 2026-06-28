@@ -107,7 +107,12 @@ export const ProfilePage = () => {
       const fileName = `${profile?.id}-${Date.now()}.${file.name.split('.').pop()}`
       const { error: uploadError } = await supabase!.storage.from('avatars').upload(fileName, file)
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        if (uploadError.message?.includes('Bucket') || uploadError.message?.includes('bucket')) {
+          throw new Error('Bucket penyimpanan "avatars" belum dibuat. Buat bucket di Supabase Dashboard > Storage, atau jalankan SQL: INSERT INTO storage.buckets (id, name, public) VALUES (\'avatars\', \'avatars\', true);')
+        }
+        throw uploadError
+      }
 
       const { data: publicData } = supabase!.storage.from('avatars').getPublicUrl(fileName)
 
@@ -119,7 +124,9 @@ export const ProfilePage = () => {
 
       showToast('success', 'Foto profil berhasil diperbarui', 'Berhasil')
     } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Gagal mengupload foto', 'Kesalahan')
+      const msg = err instanceof Error ? err.message : 'Gagal mengupload foto'
+      console.error('Avatar upload error:', msg)
+      showToast('error', msg, 'Kesalahan')
     } finally {
       setUploading(false)
       if (fileInputRef.current) {
@@ -256,7 +263,14 @@ export const ProfilePage = () => {
               <h2 className="text-xl font-bold text-foreground">Informasi Profil</h2>
               {!editMode && (
                 <button
-                  onClick={() => setEditMode(true)}
+                  onClick={() => {
+                    setFormData({
+                      full_name: profile?.full_name || '',
+                      phone: profile?.phone || '',
+                      address: profile?.address || '',
+                    })
+                    setEditMode(true)
+                  }}
                   className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
                 >
                   Edit

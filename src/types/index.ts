@@ -27,16 +27,11 @@ export type DamageCategory =
 export type SeverityLevel = 'Ringan' | 'Sedang' | 'Berat';
 
 export type ReportStatus =
-  | 'Laporan Berhasil Dikirim'
   | 'Menunggu Verifikasi Admin'
-  | 'Laporan Diterima'
+  | 'Diverifikasi'
   | 'Menunggu Penugasan Teknisi'
-  | 'Teknisi Ditugaskan'
-  | 'Survei Lapangan'
-  | 'Sedang Dalam Perbaikan'
-  | 'Menunggu Verifikasi Akhir'
-  | 'Perbaikan Selesai'
-  | 'Laporan Ditutup'
+  | 'Sedang Diproses'
+  | 'Selesai'
   | 'Ditolak';
 
 export type PriorityLevel = 'Rendah' | 'Sedang' | 'Tinggi';
