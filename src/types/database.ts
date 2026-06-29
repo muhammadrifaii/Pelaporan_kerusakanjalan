@@ -147,7 +147,6 @@ export type Database = {
           report_id: string
           status: string
           notes: string | null
-          updated_by_id: string
           updated_by_name: string
           updated_by_role: string
           created_at: string
@@ -157,7 +156,6 @@ export type Database = {
           report_id: string
           status: string
           notes?: string | null
-          updated_by_id: string
           updated_by_name: string
           updated_by_role: string
           created_at?: string

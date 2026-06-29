@@ -2,7 +2,8 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { User, Phone, MapPin, Lock, Camera, Check, X } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase, isSimulator } from '../lib/supabase'
+import { simulator } from '../lib/supabase-simulator'
 
 export const ProfilePage = () => {
   const { profile, updateProfile } = useAuth()
@@ -97,15 +98,29 @@ export const ProfilePage = () => {
     setUploading(true)
 
     try {
+      if (isSimulator) {
+        const { publicUrl, error } = await simulator.uploadFile('avatars', file)
+        if (error) throw error
+        const { error: updateError } = await updateProfile({ avatar_url: publicUrl })
+        if (updateError) throw updateError
+        showToast('success', 'Foto profil berhasil diperbarui', 'Berhasil')
+        return
+      }
+
+      if (!supabase) {
+        showToast('error', 'Koneksi database tidak tersedia', 'Gagal')
+        return
+      }
+
       if (profile?.avatar_url) {
         const oldPath = profile.avatar_url.split('/').pop()
         if (oldPath) {
-          await supabase?.storage.from('avatars').remove([oldPath])
+          await supabase.storage.from('avatars').remove([oldPath])
         }
       }
 
       const fileName = `${profile?.id}-${Date.now()}.${file.name.split('.').pop()}`
-      const { error: uploadError } = await supabase!.storage.from('avatars').upload(fileName, file)
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file)
 
       if (uploadError) {
         if (uploadError.message?.includes('Bucket') || uploadError.message?.includes('bucket')) {
@@ -114,7 +129,7 @@ export const ProfilePage = () => {
         throw uploadError
       }
 
-      const { data: publicData } = supabase!.storage.from('avatars').getPublicUrl(fileName)
+      const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(fileName)
 
       const { error: updateError } = await updateProfile({
         avatar_url: publicData.publicUrl,
@@ -159,7 +174,19 @@ export const ProfilePage = () => {
     setLoading(true)
 
     try {
-      const { error } = await supabase!.auth.updateUser({
+      if (isSimulator) {
+        showToast('info', 'Mode simulator: perubahan kata sandi tidak disimpan', 'Info')
+        setPasswordMode(false)
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+        return
+      }
+
+      if (!supabase) {
+        showToast('error', 'Koneksi database tidak tersedia', 'Gagal')
+        return
+      }
+
+      const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword,
       })
 

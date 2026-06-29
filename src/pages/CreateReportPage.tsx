@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, MapPin, Upload, X, Loader2, Image as ImageIcon, LocateFixed } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { supabase } from '../lib/supabase'
+import { supabase, isSimulator } from '../lib/supabase'
+import { simulator } from '../lib/supabase-simulator'
+import type { DamageCategory, SeverityLevel } from '../types'
 import { ReportMap } from '../components/map/ReportMap'
 
 const PEKANBARU_DISTRICTS = [
@@ -163,14 +165,45 @@ export const CreateReportPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supabase || !profile) {
-      showToast('error', 'Koneksi database tidak tersedia', 'Gagal')
+    if (!profile) {
+      showToast('error', 'Silakan login terlebih dahulu', 'Gagal')
       return
     }
 
     setSubmitting(true)
 
     try {
+      if (isSimulator) {
+        const { error } = simulator.createReport({
+          citizen_id: profile.id,
+          citizen_name: profile.full_name,
+          citizen_phone: profile.phone,
+          citizen_email: profile.email,
+          title: formData.title,
+          description: formData.description,
+          category: formData.category as DamageCategory,
+          severity: formData.severity as SeverityLevel,
+          city: 'Pekanbaru',
+          district: formData.district,
+          subdistrict: '',
+          street_name: formData.street_name,
+          latitude: latitude || 0,
+          longitude: longitude || 0,
+          images_before: [],
+          images_progress: [],
+          images_after: [],
+        })
+        if (error) throw error
+        showToast('success', 'Laporan berhasil dikirim!', 'Berhasil')
+        navigate('/reports')
+        return
+      }
+
+      if (!supabase) {
+        showToast('error', 'Koneksi database tidak tersedia', 'Gagal')
+        return
+      }
+
       let imageUrls: string[] = []
       if (photos.length > 0) {
         setUploading(true)
@@ -178,11 +211,42 @@ export const CreateReportPage = () => {
         setUploading(false)
       }
 
+      // Pastikan profile user ada di tabel profiles (upsert)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          phone: profile.phone,
+          role: 'citizen',
+          active: true,
+        }, { onConflict: 'id' })
+      if (profileError) {
+        console.error('Gagal menyimpan profile:', profileError)
+        throw profileError
+      }
+
+      // Juga upsert ke tabel users karena FK reports.citizen_id -> users(id)
+      const { error: userError } = await supabase
+        .from('users')
+        .upsert({
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          phone: profile.phone,
+          role: 'citizen',
+          active: true,
+        }, { onConflict: 'id' })
+      if (userError) {
+        console.error('Gagal menyimpan user:', userError)
+        throw userError
+      }
+
       const year = new Date().getFullYear()
-      const { count } = await supabase
-        .from('reports')
-        .select('*', { count: 'exact', head: true })
-      const ticketNumber = `JKP-${year}-${((count || 0) + 1).toString().padStart(6, '0')}`
+      const timestamp = Date.now()
+      const random = Math.floor(Math.random() * 900000) + 100000
+      const ticketNumber = `JKP-${year}-${timestamp}-${random}`
 
       const { data: reportData, error } = await supabase
         .from('reports')
@@ -240,29 +304,34 @@ export const CreateReportPage = () => {
         ticket_number: ticketNumber,
       })
 
-      if (count !== null) {
-        const { data: adminUsers } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('role', 'admin')
+      const { data: adminUsers } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'admin')
 
-        if (adminUsers) {
-          const adminNotifs = adminUsers.map((a) => ({
-            user_id: a.id,
-            title: 'Laporan Baru Masuk',
-            message: `Laporan baru dari ${profile.full_name}: "${formData.title}"`,
-            report_id: reportData.id,
-            ticket_number: ticketNumber,
-          }))
-          await supabase.from('notifications').insert(adminNotifs)
-        }
+      if (adminUsers) {
+        const adminNotifs = adminUsers.map((a) => ({
+          user_id: a.id,
+          title: 'Laporan Baru Masuk',
+          message: `Laporan baru dari ${profile.full_name}: "${formData.title}"`,
+          report_id: reportData.id,
+          ticket_number: ticketNumber,
+        }))
+        await supabase.from('notifications').insert(adminNotifs)
       }
 
       showToast('success', 'Laporan berhasil dikirim!', 'Berhasil')
       navigate('/reports')
     } catch (err) {
       console.error('Submit error:', err)
-      showToast('error', err instanceof Error ? err.message : 'Gagal mengirim laporan', 'Gagal')
+      const errMsg = (err as Record<string, unknown>)?.message as string || ''
+      if (errMsg?.includes('Failed to fetch') || errMsg?.includes('NetworkError') || errMsg?.includes('Network Error')) {
+        showToast('error', 'Koneksi internet terputus. Periksa koneksi Anda dan coba lagi.', 'Gagal')
+      } else if (errMsg?.includes('duplicate key') || errMsg?.includes('409') || errMsg?.includes('ticket_number')) {
+        showToast('error', 'Terjadi duplikasi nomor tiket. Silakan coba lagi.', 'Gagal')
+      } else {
+        showToast('error', errMsg || 'Gagal mengirim laporan', 'Gagal')
+      }
     } finally {
       setSubmitting(false)
       setUploading(false)

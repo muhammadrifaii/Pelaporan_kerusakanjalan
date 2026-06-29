@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { supabase, onAuthStateChange, isSimulator } from '../lib/supabase'
+import { simulator } from '../lib/supabase-simulator'
 import type { User, UserRole } from '../types'
 
 interface AuthContextType {
@@ -24,6 +25,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Initialize auth state
   useEffect(() => {
     if (isSimulator) {
+      const sessionUser = simulator.getSessionUser()
+      if (sessionUser) {
+        setUser({ id: sessionUser.id, email: sessionUser.email } as SupabaseUser)
+        setProfile(sessionUser)
+      }
       setLoading(false)
       return
     }
@@ -182,6 +188,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fullName: string,
     phone: string,
   ) => {
+    if (isSimulator) {
+      const result = await simulator.signUp(email, fullName, phone)
+      if (result.data.user) {
+        setUser({ id: result.data.user.id, email: result.data.user.email } as SupabaseUser)
+        setProfile(result.data.user)
+      }
+      return { error: result.error }
+    }
+
     if (!supabase) return { error: new Error('Supabase not initialized') }
 
     try {
@@ -222,6 +237,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signIn = async (email: string, password: string) => {
+    if (isSimulator) {
+      const result = await simulator.signIn(email, password)
+      if (result.data.user) {
+        setUser({ id: result.data.user.id, email: result.data.user.email } as SupabaseUser)
+        setProfile(result.data.user)
+      }
+      return { error: result.error }
+    }
+
     if (!supabase) return { error: new Error('Supabase not initialized') }
 
     try {
@@ -238,6 +262,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signOutUser = async () => {
+    if (isSimulator) {
+      await simulator.signOut()
+      setUser(null)
+      setProfile(null)
+      return
+    }
+
     if (!supabase) return
 
     try {
@@ -251,6 +282,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const updateProfile = async (data: Partial<User>) => {
+    if (isSimulator) {
+      const result = simulator.updateProfile(
+        data.full_name || profile?.full_name || '',
+        data.phone || profile?.phone || '',
+        data.avatar_url || profile?.avatar_url,
+      )
+      if (result.user) {
+        setProfile(result.user)
+      }
+      return { error: result.error }
+    }
+
     if (!supabase || !user) return { error: new Error('Not authenticated') }
 
     try {

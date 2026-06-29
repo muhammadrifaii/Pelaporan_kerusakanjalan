@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { motion } from 'framer-motion'
 import type { Report, UserRole } from '../types'
-import { supabase } from '../lib/supabase'
+import { supabase, isSimulator } from '../lib/supabase'
+import { simulator } from '../lib/supabase-simulator'
 import { StatCharts } from '../components/dashboard/StatCharts'
 import {
   TrendingUp, PlusCircle, FileText, CheckCircle, Clock,
@@ -113,19 +114,31 @@ export const DashboardPage = () => {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      if (!supabase || !profile) return
-
-      let query = supabase.from('reports').select('*')
-
-      if (profile.role === 'citizen') {
-        query = query.eq('citizen_id', profile.id)
+      if (!profile) {
+        setLoading(false)
+        return
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false })
+      let reportsList: Report[] = []
 
-      if (error) throw error
+      if (isSimulator) {
+        const allReports = simulator.getReports()
+        reportsList = profile.role === 'citizen'
+          ? allReports.filter(r => r.citizen_id === profile.id)
+          : allReports
+      } else if (supabase) {
+        let query = supabase.from('reports').select('*')
 
-      const reportsList = (data as Report[]) || []
+        if (profile.role === 'citizen') {
+          query = query.eq('citizen_id', profile.id)
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false })
+
+        if (error) throw error
+        reportsList = (data as Report[]) || []
+      }
+
       setReports(profile?.role === 'admin' ? reportsList : reportsList.slice(0, 5))
 
       const s: StatData = {
@@ -150,13 +163,27 @@ export const DashboardPage = () => {
   }, [profile, showToast])
 
   const fetchUserCount = useCallback(async () => {
+    if (isSimulator) {
+      const users = simulator.getUsers()
+      setTotalUsers(users.length)
+      return
+    }
     const sb = supabase
     if (!sb) return
     try {
-      const { count } = await sb
+      let { count } = await sb
         .from('profiles')
         .select('*', { count: 'exact', head: true })
-      if (count !== null) setTotalUsers(count)
+      if (count !== null && count > 0) {
+        setTotalUsers(count)
+        return
+      }
+      const { count: usersCount } = await sb
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+      if (usersCount !== null) {
+        setTotalUsers(usersCount)
+      }
     } catch { /* silent */ }
   }, [])
 
@@ -166,6 +193,12 @@ export const DashboardPage = () => {
   }, [profile, fetchData, fetchUserCount, role])
 
   useEffect(() => {
+    if (isSimulator) {
+      const unsub = simulator.subscribe('reports', '*', () => {
+        fetchData()
+      })
+      return () => unsub()
+    }
     const sb = supabase
     if (!sb) return
     const channel = sb

@@ -4,8 +4,9 @@ import type { Report } from '../types'
 // Generate ticket number
 export const generateTicketNumber = (): string => {
   const year = new Date().getFullYear()
+  const timestamp = Date.now()
   const random = Math.floor(Math.random() * 900000) + 100000
-  return `JKP-${year}-${random}`
+  return `JKP-${year}-${timestamp}-${random}`
 }
 
 // Reports API

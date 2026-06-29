@@ -49,11 +49,37 @@ CREATE POLICY "Admins can manage all profiles"
         )
     );
 
--- 4. Create Reports Table
+CREATE POLICY "Users can insert their own profile" 
+    ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- 4. Create Users Table (referenced by reports.citizen_id)
+CREATE TABLE public.users (
+    id UUID PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT NOT NULL CHECK (role IN ('citizen', 'admin', 'coordinator', 'technician')),
+    full_name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    avatar_url TEXT,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users are viewable by everyone" 
+    ON public.users FOR SELECT USING (true);
+
+CREATE POLICY "Users can update their own record" 
+    ON public.users FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Authenticated users can insert their own record" 
+    ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- 5. Create Reports Table
 CREATE TABLE public.reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     ticket_number TEXT NOT NULL UNIQUE,
-    citizen_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    citizen_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
     citizen_name TEXT NOT NULL,
     citizen_phone TEXT NOT NULL,
     citizen_email TEXT NOT NULL,
@@ -95,6 +121,8 @@ CREATE TABLE public.reports (
 
 -- Enable RLS on Reports
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.reports REPLICA IDENTITY FULL;
 
 -- Reports Policies
 CREATE POLICY "Reports are viewable by everyone" 
@@ -153,7 +181,7 @@ CREATE POLICY "Technicians can view and update reports assigned to them"
         )
     );
 
--- 5. Create Status History Table
+-- 6. Create Status History Table
 CREATE TABLE public.status_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID REFERENCES public.reports(id) ON DELETE CASCADE,
@@ -165,6 +193,7 @@ CREATE TABLE public.status_history (
 );
 
 ALTER TABLE public.status_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.status_history REPLICA IDENTITY FULL;
 
 CREATE POLICY "Status history is viewable by everyone" 
     ON public.status_history FOR SELECT USING (true);
@@ -172,7 +201,7 @@ CREATE POLICY "Status history is viewable by everyone"
 CREATE POLICY "Authenticated users can insert status history" 
     ON public.status_history FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- 6. Create Notifications Table
+-- 7. Create Notifications Table
 CREATE TABLE public.notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -185,6 +214,7 @@ CREATE TABLE public.notifications (
 );
 
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications REPLICA IDENTITY FULL;
 
 CREATE POLICY "Users can view their own notifications" 
     ON public.notifications FOR SELECT USING (auth.uid() = user_id);
@@ -195,7 +225,7 @@ CREATE POLICY "Users can update their own notifications (mark read)"
 CREATE POLICY "Authenticated service role can insert notifications" 
     ON public.notifications FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- 7. Create Audit Logs Table
+-- 8. Create Audit Logs Table
 CREATE TABLE public.audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -219,7 +249,7 @@ CREATE POLICY "Only admins can view audit logs"
 CREATE POLICY "Authenticated users can insert audit logs" 
     ON public.audit_logs FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- 8. Storage Setup — jalankan SQL ini di Supabase SQL Editor
+-- 9. Storage Setup — jalankan SQL ini di Supabase SQL Editor
 -- Storage buckets WAJIB dibuat sebelum upload bisa berfungsi:
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
 INSERT INTO storage.buckets (id, name, public) VALUES ('report-images', 'report-images', true) ON CONFLICT (id) DO NOTHING;

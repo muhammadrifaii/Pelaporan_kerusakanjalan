@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import type { Report, ReportStatus } from '../types'
-import { supabase } from '../lib/supabase'
+import { supabase, isSimulator } from '../lib/supabase'
+import { simulator } from '../lib/supabase-simulator'
 import {
   Search, Filter, Trash2, Eye, X, ChevronLeft, ChevronRight, MapPin, Calendar,
   Edit3, AlertTriangle, Save, Loader2, ImageOff, CheckCircle, Ban
@@ -107,18 +108,29 @@ export const ReportsPage = () => {
   const fetchReports = useCallback(async () => {
     setLoading(true)
     try {
-      if (!supabase || !profile) return
-
-      let query = supabase.from('reports').select('*')
-
-      if (profile.role === 'citizen') {
-        query = query.eq('citizen_id', profile.id)
+      if (!profile) {
+        setLoading(false)
+        return
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false })
+      if (isSimulator) {
+        const allReports = simulator.getReports()
+        const filtered = profile.role === 'citizen'
+          ? allReports.filter(r => r.citizen_id === profile.id)
+          : allReports
+        setReports(filtered)
+      } else if (supabase) {
+        let query = supabase.from('reports').select('*')
 
-      if (error) throw error
-      setReports((data as Report[]) || [])
+        if (profile.role === 'citizen') {
+          query = query.eq('citizen_id', profile.id)
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false })
+
+        if (error) throw error
+        setReports((data as Report[]) || [])
+      }
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Gagal memuat laporan', 'Kesalahan')
     } finally {
@@ -128,6 +140,25 @@ export const ReportsPage = () => {
 
   useEffect(() => {
     fetchReports()
+  }, [fetchReports])
+
+  // Realtime subscription for reports
+  useEffect(() => {
+    if (isSimulator) {
+      const unsub = simulator.subscribe('reports', '*', () => {
+        fetchReports()
+      })
+      return () => unsub()
+    }
+
+    if (!supabase) return
+    const channel = supabase
+      .channel('reports-page-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
+        fetchReports()
+      })
+      .subscribe()
+    return () => { supabase?.removeChannel(channel) }
   }, [fetchReports])
 
   const filtered = reports.filter((report) => {
